@@ -38,7 +38,7 @@ library MultiStore {
         return
             Utils.merkleInnerHash( // [AppHash]
                 Utils.merkleInnerHash( // [I14]
-                    self.authToFeeGrantStoresMerkleHash, // [I10]
+                    self.authToFeeGrantStoresMerkleHash, // [I12]
                     Utils.merkleInnerHash( // [I13]
                         Utils.merkleInnerHash( // [I10]
                             self.govToIbcCoreStoresMerkleHash, // [I4]
