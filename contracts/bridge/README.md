@@ -72,7 +72,7 @@ To implement the **Bridge** we only need two utility functions.
 
 ## Dependencies
 
-- **OBI** or Oracle Binary Encoding is the standard way to serialized and deserialize binary data in the BandChain ecosystem.
+- **OBI** or Oracle Binary Encoding is the standard way to serialized and deserialize binary data in the Bandchain ecosystem.
   - see OBI wiki page [here](https://github.com/bandprotocol/bandchain/wiki/Oracle-Binary-Encoding-(OBI))
   - see example implementations [here](https://github.com/bandprotocol/bandchain/tree/master/obi)
 
@@ -83,8 +83,8 @@ To implement the **Bridge** we only need two utility functions.
 ## Lite Client Verification Overview
 
 When the client needs external data, they will come to the oracle. In our case, they will come to the Bandchain and make a request transaction. After that, the oracle mechanic behind will gather the result for the request, which will be stored persistently in the chain's state. 
-Once the client saw the oracle result, they proceed to verify that the result actually comes from BandChain. 
-They do this by gathering a Bandchain's block with enough `signatures` and relaying that block to the `Bridge`. If block relaying was successful, they could verify their result using a Merkle proof-like scheme. This process aims to ensure that the data received is part of BandChain's state and is signed by a sufficient number of BandChain's block validators.
+Once the client saw the oracle result, they proceed to verify that the result actually comes from Bandchain. 
+They do this by gathering a Bandchain's block with enough `signatures` and relaying that block to the `Bridge`. If block relaying was successful, they could verify their result using a Merkle proof-like scheme. This process aims to ensure that the data received is part of Bandchain's state and is signed by a sufficient number of Bandchain's block validators.
 
 The signatures were created by validators signing the message on [Tendermint](https://github.com/tendermint/tendermint/tree/v0.34.x) called [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote). The [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote) is composed of six fields. Some of those fields have their sub-fields containing the block hash. The diagram below help explain the [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote) message by expanding its struct, which includes the structs of the internal fields as well. 
 
@@ -156,7 +156,7 @@ In the diagram below, the `block hash` will be calculated by hashing the raw dat
 ```
 
 As described above, the entire process can be divided into two parts.
-1. **relay_block**: Verify that an `oracle module`<strong><em>[B]</em></strong> root hash module really exist on BandChain at a specific block and then save that root hash into **Bridge**'s state. This process requires the signatures of several validators signed on the block hash in which everyone who signs must have a total voting power greater than or equal to two-thirds of the entire voting power. The block hash is made up of multiple values that come from the BandChain state, where `oracle module`<strong><em>[B]</em></strong> root hash is one of them.
+1. **relay_block**: Verify that an `oracle module`<strong><em>[B]</em></strong> root hash module really exist on Bandchain at a specific block and then save that root hash into **Bridge**'s state. This process requires the signatures of several validators signed on the block hash in which everyone who signs must have a total voting power greater than or equal to two-thirds of the entire voting power. The block hash is made up of multiple values that come from the Bandchain state, where `oracle module`<strong><em>[B]</em></strong> root hash is one of them.
 2. **verify_oracle_data**: Verify a specific value that store under `oracle module`<strong><em>[B]</em></strong> is really existed by hashing the corresponding node's from bottom to top.
 
   - **n** is the height of IAVL merkle tree
@@ -286,12 +286,12 @@ Example proof struct
 
 #### validator_with_power
 
-A structure that encapsulates the public key and the amount of voting power on BandChain of a single validator.
+A structure that encapsulates the public key and the amount of voting power on Bandchain of a single validator.
 
 | Field Name  | Type      | Description                                                                                                                           |
 | ----------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `validator` | `address` | validator's public key or something unique that is derived from public key such as hash of public key, compression form of public key |
-| `power`     | `u64`     | validator's voting power on BandChain                                                                                                 |
+| `power`     | `u64`     | validator's voting power on Bandchain                                                                                                 |
 
 #### result
 
@@ -300,13 +300,13 @@ A structure that encapsulates the information about a request on Bandchain.
 | Field Name         | Type     | Description                                                                                                                                                     |
 | ------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `client_id`        | `string` | a string that refer to the requester, for example "from_scan", ...                                                                                              |
-| `oracle_script_id` | `u64`    | an integer that refer to a specific oracle script on BandChain                                                                                                  |
+| `oracle_script_id` | `u64`    | an integer that refer to a specific oracle script on Bandchain                                                                                                  |
 | `params`           | `bytes`  | an obi encode of the request's parameters, for example "000000034254430000000a" (obi encode of ["BTC", 10])                                                     |
 | `ask_count`        | `u64`    | the minimum number of validators necessary for the request to proceed to the execution phase. Therefore the minCount must be less than or equal to the askCount |
 | `min_count`        | `u64`    | the number of validators that are requested to respond to this request                                                                                          |
-| `request_id`       | `u64`    | an integer that refer to a specific request on BandChain                                            |
+| `request_id`       | `u64`    | an integer that refer to a specific request on Bandchain                                            |
 | `ans_count`        | `u64`    | a number of answers that was answered by validators                                                 |
-| `request_time`     | `u64`    | unix time at which the request was created on BandChain                                             |
+| `request_time`     | `u64`    | unix time at which the request was created on Bandchain                                             |
 | `resolve_time`     | `u64`    | unix time at which the request got a number of reports/answers greater than or equal to `min_count` |
 | `resolve_status`   | `u32`    | status of the request (0=Open, 1=Success, 2=Failure, 3=Expired)                                     |
 | `result`           | `bytes`  | an obi encode of the request's result, for example "0000aaaa" (obi encode of [ 43690 ])             |
@@ -412,7 +412,7 @@ contract Bridge {
 
 #### block_details
 
-A storage mapping that has the ability to map a positive integer (block height of BandChain) to a struct `block_detail`.
+A storage mapping that has the ability to map a positive integer (block height of Bandchain) to a struct `block_detail`.
 
 Example
 ```solidity
@@ -503,13 +503,13 @@ return values
 
 #### get_oracle_state
 
-Get the iAVL Merkle tree hash of `oracle module` **_[B]_** from given block height of the BandChain. This function should read value from the storage oracle_states and then return the value.
+Get the iAVL Merkle tree hash of `oracle module` **_[B]_** from given block height of the Bandchain. This function should read value from the storage oracle_states and then return the value.
 
 params
 
 | Type      | Field Name    | Description                                                                                                                 |
 | --------- | ------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `uint256` | block height  | The height of block in BandChain that the `oracle module` **_[B]_** hash was relayed on the chain where this Bridge resides |
+| `uint256` | block height  | The height of block in Bandchain that the `oracle module` **_[B]_** hash was relayed on the chain where this Bridge resides |
 
 return values
 
@@ -519,7 +519,7 @@ return values
 
 #### get_validator_power
 
-Get voting power of a validator on BandChain from the storage `validator_power`. This function receive the validator's address (or hash of the public key) and then return a struct `validator_with_power`.
+Get voting power of a validator on Bandchain from the storage `validator_power`. This function receive the validator's address (or hash of the public key) and then return a struct `validator_with_power`.
 
 params
 
@@ -816,7 +816,7 @@ no return value
 
 #### verify_oracle_data
 
-This function verifies that the given data is a valid data on BandChain as of the given block height.
+This function verifies that the given data is a valid data on Bandchain as of the given block height.
 
 params
 
@@ -882,7 +882,7 @@ H(i+1) is get_parent_hash(C(i), H(i)).
 
 #### verify_requests_count
 
-This function verifies that the given request count is a information on BandChain at the given block height.
+This function verifies that the given request count is a information on Bandchain at the given block height.
 
 params
 
