@@ -4,25 +4,21 @@ import time
 
 
 def test_bridge_relayandverify_bridge_success(bridge, valid_proof):
-    tx = bridge.relayAndVerify(valid_proof, {"from": accounts[0]})
-    assert tx.status == 1
+    bridge.relayAndVerify(valid_proof, {"from": accounts[0]})
 
 
 def test_bridge_relayandverify_bridge_fail(bridge, invalid_proof):
     with brownie.reverts():
-        tx = bridge.relayAndVerify(invalid_proof, {"from": accounts[0]})
-        tx.status == 0
+        bridge.relayAndVerify(invalid_proof, {"from": accounts[0]})
 
 
 def test_bridge_relayandverify_bridgeinfo_success(bridgeinfo, valid_proof):
-    tx = bridgeinfo.relayAndSave(valid_proof, {"from": accounts[0]})
-    assert tx.status == 1
+    bridgeinfo.relayAndSave(valid_proof, {"from": accounts[0]})
 
 
 def test_bridge_relayandverify_bridgeinfo_success(bridgeinfo, invalid_proof):
     with brownie.reverts():
-        tx = bridgeinfo.relayAndSave(invalid_proof, {"from": accounts[0]})
-        tx.status == 0
+        bridgeinfo.relayAndSave(invalid_proof, {"from": accounts[0]})
 
 
 def test_bridge_relay_request_clientid(bridgeinfo_relayed):

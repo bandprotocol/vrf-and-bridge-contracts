@@ -7,53 +7,53 @@
 
 **Table of Contents**
 
-- [Introduction](#introduction)
-- [Utility Functions](#utility-functions)
-  - sha256
-  - ecrecover
-- [Dependencies](#dependencies)
-  - OBI
-  - Protobuf
-- [Lite Client Verification Overview](#lite-client-verification-overview)
-  - [Getting the proof from Band](#Getting_the_proof_from_Band)
-  - [Proof structure](#Proof_structure)
 - [Bridge contract](#bridge-contract)
-  - [Structs](#structs)
-    - [validator_with_power](#validator_with_power)
-    - [result](#result)
-    - [iavl_merkle_path](#iavl_merkle_path)
-    - [multi_store_proof](#multi_store_proof)
-    - [block_header_merkle_parts](#block_header_merkle_parts)
-    - [tm_signature](#tm_signature)
-    - [block_detail](#block_detail)
-    - [common_encoded_vote_part](#common_encoded_vote_part)
-  - [Storages](#Storages)
-    - [total_validator_power](#total_validator_power)
-    - [validator_powers](#validator_powers)
-    - [block_details](#block_details)
-    - [encoded_chain_id](#encoded_chain_id)
-  - [Functions](#bridge's-functions)
-    - [get_total_validator_power](#get_total_validator_power)
-    - [get_number_of_validators](#get_number_of_validators)
-    - [get_validators](#get_validators)
-    - [get_all_validators](#get_all_validators)
-    - [get_oracle_state](#get_oracle_state)
-    - [get_validator_power](#get_validator_power)
-    - [merkle_leaf_hash](#merkle_leaf_hash)
-    - [merkle_inner_hash](#merkle_inner_hash)
-    - [encode_varint_unsigned](#encode_varint_unsigned)
-    - [encode_varint_signed](#encode_varint_signed)
-    - [get_block_header](#get_block_header)
-    - [check_parts_and_encoded_common_parts](#check_parts_and_encoded_common_parts)
-    - [check_time_and_recover_signer](#check_time_and_recover_signer)
-    - [get_parent_hash](#get_parent_hash)
-    - [relay_block](#relay_block)
-    - [verify_oracle_data](#verify_oracle_data)
-    - [verify_requests_count](#verify_requests_count)
-    - [relay_and_verify](#relay_and_verify)
-    - [relay_and_multi_verify](#relay_and_multi_verify)
-    - [relay_and_verify_count](#relay_and_verify_count)
-    - [verify_proof](#verify_proof)
+  - [Table of contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Utility Functions](#utility-functions)
+  - [Dependencies](#dependencies)
+  - [Lite Client Verification Overview](#lite-client-verification-overview)
+    - [Getting\_the\_proof\_from\_Band](#getting_the_proof_from_band)
+    - [Proof\_structure](#proof_structure)
+  - [Implementation](#implementation)
+    - [Structs](#structs)
+      - [validator\_with\_power](#validator_with_power)
+      - [result](#result)
+      - [iavl\_merkle\_path](#iavl_merkle_path)
+      - [multi\_store\_proof](#multi_store_proof)
+      - [block\_header\_merkle\_parts](#block_header_merkle_parts)
+      - [tm\_signature](#tm_signature)
+      - [block\_detail](#block_detail)
+      - [common\_encoded\_vote\_part](#common_encoded_vote_part)
+  - [Bridge's storages](#bridges-storages)
+      - [total\_validator\_power](#total_validator_power)
+      - [validator\_powers](#validator_powers)
+      - [block\_details](#block_details)
+      - [encoded\_chain\_id](#encoded_chain_id)
+  - [Bridge's functions](#bridges-functions)
+      - [get\_total\_validator\_power](#get_total_validator_power)
+      - [get\_number\_of\_validators](#get_number_of_validators)
+      - [get\_validators](#get_validators)
+      - [get\_all\_validators](#get_all_validators)
+      - [get\_oracle\_state](#get_oracle_state)
+      - [get\_validator\_power](#get_validator_power)
+      - [update\_validator\_powers](#update_validator_powers)
+      - [merkle\_leaf\_hash](#merkle_leaf_hash)
+      - [merkle\_inner\_hash](#merkle_inner_hash)
+      - [encode\_varint\_unsigned](#encode_varint_unsigned)
+      - [encode\_varint\_signed](#encode_varint_signed)
+      - [check\_parts\_and\_encoded\_common\_parts](#check_parts_and_encoded_common_parts)
+      - [get\_block\_header](#get_block_header)
+      - [get\_app\_hash](#get_app_hash)
+      - [check\_time\_and\_recover\_signer](#check_time_and_recover_signer)
+      - [get\_parent\_hash](#get_parent_hash)
+      - [relay\_block](#relay_block)
+      - [verify\_oracle\_data](#verify_oracle_data)
+      - [verify\_requests\_count](#verify_requests_count)
+      - [relay\_and\_verify](#relay_and_verify)
+      - [relay\_and\_multi\_verify](#relay_and_multi_verify)
+      - [relay\_and\_verify\_count](#relay_and_verify_count)
+      - [verify\_proof](#verify_proof)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -82,11 +82,11 @@ To implement the **Bridge** we only need two utility functions.
 
 ## Lite Client Verification Overview
 
-When the client needs external data, they will come to the oracle. In our case, they will come to the Bandchain and make a request transaction. After that, the oracle mechanic behind will gather the result for the request, which will be stored persistently in the chain's state. 
-Once the client saw the oracle result, they proceed to verify that the result actually comes from Bandchain. 
+When the client needs external data, they will come to the oracle. In our case, they will come to the Bandchain and make a request transaction. After that, the oracle mechanic behind will gather the result for the request, which will be stored persistently in the chain's state.
+Once the client saw the oracle result, they proceed to verify that the result actually comes from Bandchain.
 They do this by gathering a Bandchain's block with enough `signatures` and relaying that block to the `Bridge`. If block relaying was successful, they could verify their result using a Merkle proof-like scheme. This process aims to ensure that the data received is part of Bandchain's state and is signed by a sufficient number of Bandchain's block validators.
 
-The signatures were created by validators signing the message on [Tendermint](https://github.com/tendermint/tendermint/tree/v0.34.x) called [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote). The [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote) is composed of six fields. Some of those fields have their sub-fields containing the block hash. The diagram below help explain the [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote) message by expanding its struct, which includes the structs of the internal fields as well. 
+The signatures were created by validators signing the message on [Tendermint](https://github.com/tendermint/tendermint/tree/v0.34.x) called [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote). The [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote) is composed of six fields. Some of those fields have their sub-fields containing the block hash. The diagram below help explain the [CanonicalVote](https://github.com/tendermint/tendermint/blob/v0.34.x/spec/core/data_structures.md#canonicalvote) message by expanding its struct, which includes the structs of the internal fields as well.
 
 ```go
 type SignedMsgType int32
@@ -133,9 +133,9 @@ In the diagram below, the `block hash` will be calculated by hashing the raw dat
                                                                  |
                                              ________________[AppHash]_________________
                                             /                                          \
-                        _________________[I14]_________________                        [G]
-                       /                                        \
-            _______[I12]______                          _______[I13]________
+                        _________________[I14]_________________                     __[I15]__
+                       /                                        \				           /         \
+            _______[I12]______                          _______[I13]________     [G]         [H]
            /                  \                        /                    \
       __[I8]__             __[I9]__                __[I10]__              __[I11]__
      /         \          /         \            /          \            /         \
@@ -150,20 +150,21 @@ In the diagram below, the `block hash` will be calculated by hashing the raw dat
 [γ] - evidence_hash         [ω] - proposer_address
 
 # Leafs of AppHash tree
-[0] - auth     [1] - authz    [2] - bank    [3] - capability [4] - crisis  [5] - dist
-[6] - evidence [7] - feegrant [8] - gov     [9] - ibccore    [A] - mint    [B] - oracle
-[C] - params   [D] - slashing [E] - staking [F] - transfer   [G] - upgrade
+[0] - acc (auth) [1] - authz    [2] - bank     [3] - capability [4] - crisis   [5] - dist
+[6] - evidence   [7] - feegrant [8] - gov      [9] - ibccore    [A] - icahost  [B] - mint
+[C] - oracle     [D] - params   [E] - slashing [F] - staking    [G] - transfer [H] - upgrade
 ```
 
 As described above, the entire process can be divided into two parts.
-1. **relay_block**: Verify that an `oracle module`<strong><em>[B]</em></strong> root hash module really exist on Bandchain at a specific block and then save that root hash into **Bridge**'s state. This process requires the signatures of several validators signed on the block hash in which everyone who signs must have a total voting power greater than or equal to two-thirds of the entire voting power. The block hash is made up of multiple values that come from the Bandchain state, where `oracle module`<strong><em>[B]</em></strong> root hash is one of them.
-2. **verify_oracle_data**: Verify a specific value that store under `oracle module`<strong><em>[B]</em></strong> is really existed by hashing the corresponding node's from bottom to top.
 
-  - **n** is the height of IAVL merkle tree
-  - **value** is bytes, which is the encoded of the actual data stored under the `oracle module`<strong><em>[B]</em></strong>.
-  - **H(n)** is an `oracle module`<strong><em>[B]</em></strong> root hash from the previous diagram.
-    - **H(0)** is derived from the **value**
-  - **C(i)** is a corresponding node to H(i) where **i ∈ {0,1,2,...,n-1}** .
+1. **relay_block**: Verify that an `oracle module` **_[C]_** root hash module really exist on Bandchain at a specific block and then save that root hash into **Bridge**'s state. This process requires the signatures of several validators signed on the block hash in which everyone who signs must have a total voting power greater than or equal to two-thirds of the entire voting power. The block hash is made up of multiple values that come from the Bandchain state, where `oracle module`**_[C]_** root hash is one of them.
+2. **verify_oracle_data**: Verify a specific value that store under `oracle module`**_[C]_** is really existed by hashing the corresponding node's from bottom to top.
+
+- **n** is the height of IAVL merkle tree
+- **value** is bytes, which is the encoded of the actual data stored under the `oracle module` **_[C]_**.
+- **H(n)** is an `oracle module` **_[C]_** root hash from the previous diagram.
+  - **H(0)** is derived from the **value**
+- **C(i)** is a corresponding node to H(i) where **i ∈ {0,1,2,...,n-1}** .
 
   ```text
                       H(n) is the same as [B] from the previous diagram
@@ -280,7 +281,7 @@ Example proof struct
 }
 ```
 
-## Bridge contract
+## Implementation
 
 ### Structs
 
@@ -304,16 +305,16 @@ A structure that encapsulates the information about a request on Bandchain.
 | `params`           | `bytes`  | an obi encode of the request's parameters, for example "000000034254430000000a" (obi encode of ["BTC", 10])                                                     |
 | `ask_count`        | `u64`    | the minimum number of validators necessary for the request to proceed to the execution phase. Therefore the minCount must be less than or equal to the askCount |
 | `min_count`        | `u64`    | the number of validators that are requested to respond to this request                                                                                          |
-| `request_id`       | `u64`    | an integer that refer to a specific request on Bandchain                                            |
-| `ans_count`        | `u64`    | a number of answers that was answered by validators                                                 |
-| `request_time`     | `u64`    | unix time at which the request was created on Bandchain                                             |
-| `resolve_time`     | `u64`    | unix time at which the request got a number of reports/answers greater than or equal to `min_count` |
-| `resolve_status`   | `u32`    | status of the request (0=Open, 1=Success, 2=Failure, 3=Expired)                                     |
-| `result`           | `bytes`  | an obi encode of the request's result, for example "0000aaaa" (obi encode of [ 43690 ])             |
+| `request_id`       | `u64`    | an integer that refer to a specific request on Bandchain                                                                                                        |
+| `ans_count`        | `u64`    | a number of answers that was answered by validators                                                                                                             |
+| `request_time`     | `u64`    | unix time at which the request was created on Bandchain                                                                                                         |
+| `resolve_time`     | `u64`    | unix time at which the request got a number of reports/answers greater than or equal to `min_count`                                                             |
+| `resolve_status`   | `u32`    | status of the request (0=Open, 1=Success, 2=Failure, 3=Expired)                                                                                                 |
+| `result`           | `bytes`  | an obi encode of the request's result, for example "0000aaaa" (obi encode of [ 43690 ])                                                                         |
 
 #### iavl_merkle_path
 
-A structure of merkle proof that shows how the data leaf is part of the `oracle module`<strong><em>[B]</em></strong> tree. The proof’s content is the list of “iavl_merkle_path” from the leaf to the root of the tree.
+A structure of merkle proof that shows how the data leaf is part of the `oracle module`**_[C]_** tree. The proof’s content is the list of “iavl_merkle_path” from the leaf to the root of the tree.
 
 | Field Name         | Type      | Description                                                    |
 | ------------------ | --------- | -------------------------------------------------------------- |
@@ -325,63 +326,63 @@ A structure of merkle proof that shows how the data leaf is part of the `oracle 
 
 #### multi_store_proof
 
-A structure that encapsulates sibling module hashes of the 
-`app_hash`<strong><em>[α]</em></strong> which are 
-**_[B]_**, **_[A]_**, **_[I4]_**, **_[I11]_**, **_[I12]_**, **_[G]_**
+A structure that encapsulates sibling module hashes of the
+`app_hash` **_[C]_** which are
+**_[D]_**, **_[I7]_**, **_[I10]_**, **_[I12]_**, **_[I15]_**
 
-| Field Name                              | Type      | Description                                                                            |
-| --------------------------------------- | --------- | -------------------------------------------------------------------------------------- |
-| `auth_to_fee_grant_stores_merkle_hash`  | `bytes32` | root hash of acc,distr,evidence,gov modules (<strong><em>[ρ5]</em></strong>)           |
-| `gov_to_ibc_core_stores_merkle_hash`    | `bytes32` | root hash of main and mint modules (<strong><em>[ρ3]</em></strong>)                    |
-| `mint_store_merkle_hash`                | `bytes32` | root hash of params module (<strong><em>[h]</em></strong>)                             |
-| `oracle_iavl_state_hash`                | `bytes32` | root hash of oracle module (<strong><em>[B]</em></strong>)                             |
-| `params_to_transfer_stores_merkle_hash` | `bytes32` | root hash of slashing,staking,supply,upgrade modules (<strong><em>[ρ10]</em></strong>) |
-| `upgrade_store_merkle_hash`             | `bytes32` | root hash of slashing,staking,supply,upgrade modules (<strong><em>[ρ10]</em></strong>) |
+| Field Name                               | Type      | Description                                                 |
+| ---------------------------------------- | --------- | ----------------------------------------------------------- |
+| `oracle_iavl_state_hash`                 | `bytes32` | root hash of oracle state (**_[C]_**)                       |
+| `params_store_merkle_hash`               | `bytes32` | leaf hash represents params module (**_[D]_**)              |
+| `slashing_to_staking_stores_merkle_hash` | `bytes32` | internal node of slashing and staking modules (**_[I7]_**)  |
+| `gov_to_mint_stores_merkle_hash`         | `bytes32` | internal node of gov to mint (4) modules (**_[I10]_**)      |
+| `auth_to_fee_grant_stores_merkle_hash`   | `bytes32` | internal node of auth to feegrant (8) modules (**_[I12]_**) |
+| `transfer_to_upgrade_stores_merkle_hash` | `bytes32` | internal node of transfer and upgrade modules (**_[I15]_**) |
 
 #### block_header_merkle_parts
 
-A structure that encapsulates the components of a block header that correspond to height<strong><em>[2]</em></strong> and app hash <strong><em>[A]</em></strong>.
+A structure that encapsulates the components of a block header that correspond to height**_[2]_** and app hash **_[A]_**.
 
-| Field Name                               | Type      | Description                                                                                               |
-| ---------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------- |
-| `version_and_chain_id_hash`              | `bytes32` | root hash of version and chain id components (<strong><em>[1α]</em></strong>)                             |
-| `time_hash`                              | `bytes32` | hash of time component (<strong><em>[3]</em></strong>)                                                    |
-| `last_block_id_and_other`                | `bytes32` | root hash of last block id, last commit hash, data hash, validators hash (<strong><em>[2ß]</em></strong>) |
-| `next_validator_hash_and_consensus_hash` | `bytes32` | root hash of version and chain id components (<strong><em>[1ε]</em></strong>)                             |
-| `last_results_hash`                      | `bytes32` | hash of last results component (<strong><em>[B]</em></strong>)                                            |
-| `evidence_and_proposer_hash`             | `bytes32` | hash of evidence and proposer components (<strong><em>[2Δ]</em></strong>)                                 |
+| Field Name                               | Type      | Description                                                                           |
+| ---------------------------------------- | --------- | ------------------------------------------------------------------------------------- |
+| `version_and_chain_id_hash`              | `bytes32` | root hash of version and chain id components (**_[1α]_**)                             |
+| `time_hash`                              | `bytes32` | hash of time component (**_[3]_**)                                                    |
+| `last_block_id_and_other`                | `bytes32` | root hash of last block id, last commit hash, data hash, validators hash (**_[2ß]_**) |
+| `next_validator_hash_and_consensus_hash` | `bytes32` | root hash of version and chain id components (**_[1ε]_**)                             |
+| `last_results_hash`                      | `bytes32` | hash of last results component (**_[B]_**)                                            |
+| `evidence_and_proposer_hash`             | `bytes32` | hash of evidence and proposer components (**_[2Δ]_**)                                 |
 
 #### tm_signature
 
 A structure that encapsulates Tendermint's CanonicalVote
- data and validator's signature for performing signer recovery for ECDSA secp256k1 signature. Tendermint's CanonicalVote data is composed of a block hash and some additional information prepended and appended to the block hash. Most parts of the sign data are the same for all validators except the timestamp. So, most parts are moved out to a single common struct, and the encoded timestamp stays with the signature. 
+ data and validator's signature for performing signer recovery for ECDSA secp256k1 signature. Tendermint's CanonicalVote data is composed of a block hash and some additional information prepended and appended to the block hash. Most parts of the sign data are the same for all validators except the timestamp. So, most parts are moved out to a single common struct, and the encoded timestamp stays with the signature.
 
-| Field Name           | Type      | Description                                                      |
-| -------------------- | --------- | ---------------------------------------------------------------- |
-| `r`                  | `bytes32 `| a part of signature                                              |
-| `s`                  | `bytes32` | a part of signature                                              |
-| `v`                  | `u8`      | a value that helps reduce the calculation of public key recovery |
-| `encoded_timestamp`  | `bytes`   | a protobuf encoded timestamp of each validator                   |
+| Field Name          | Type      | Description                                                      |
+| ------------------- | --------- | ---------------------------------------------------------------- |
+| `r`                 | `bytes32` | a part of signature                                              |
+| `s`                 | `bytes32` | a part of signature                                              |
+| `v`                 | `u8`      | a value that helps reduce the calculation of public key recovery |
+| `encoded_timestamp` | `bytes`   | a protobuf encoded timestamp of each validator                   |
 
 #### block_detail
 
-The `oracle module`<strong><em>[B]</em></strong> state which will be saved on-chain along with the time_second and time_nano_second_fraction of the block.
+The `oracle module`**_[C]_** state which will be saved on-chain along with the time_second and time_nano_second_fraction of the block.
 
-| Field Name                   | Type      | Description                                                      |
-| ---------------------------- | --------- | ---------------------------------------------------------------- |
-| `oracle_state`               | `bytes32` | a part of signature                                              |
-| `time_second`                | `uint64`  | a part of signature                                              |
-| `time_nano_second_fraction`  | `u8`      | a value that helps reduce the calculation of public key recovery |
+| Field Name                  | Type      | Description                                                      |
+| --------------------------- | --------- | ---------------------------------------------------------------- |
+| `oracle_state`              | `bytes32` | a part of signature                                              |
+| `time_second`               | `uint64`  | a part of signature                                              |
+| `time_nano_second_fraction` | `u8`      | a value that helps reduce the calculation of public key recovery |
 
 #### common_encoded_vote_part
 
 Tendermint's CanonicalVote data compose of block hash and some additional information prepended and appended to the block
 hash. The prepended part (prefix) and the appended part (suffix) are different for each signer.
 
-| Field Name           | Type                     | Description                                                      |
-| -------------------- | ------------------------ | ---------------------------------------------------------------- |
-| `signed_data_prefix` | `bytes`                  | The prepended part of Tendermint's precommit data                |
-| `signed_data_suffix` | `bytes`                  | The appended part of Tendermint's precommit data                 |               | a protobuf encoded timestamp of each validator                   |
+| Field Name           | Type    | Description                                       |
+| -------------------- | ------- | ------------------------------------------------- |
+| `signed_data_prefix` | `bytes` | The prepended part of Tendermint's precommit data |
+| `signed_data_suffix` | `bytes` | The appended part of Tendermint's precommit data  |  | a protobuf encoded timestamp of each validator |
 
 ## Bridge's storages
 
@@ -390,6 +391,7 @@ hash. The prepended part (prefix) and the appended part (suffix) are different f
 A storage variable that represent the total voting power of all validators.
 
 Example
+
 ```solidity
 contract Bridge {
     /// The total voting power of active validators currently on duty.
@@ -403,6 +405,7 @@ A storage mapping from address to the struct `validator_with_power`.
 In our implementation, we using the EnumerableMap to make the keep tracking of the validators set easier.
 
 Example
+
 ```solidity
 contract Bridge {
     /// Mapping from an address to its voting power.
@@ -415,6 +418,7 @@ contract Bridge {
 A storage mapping that has the ability to map a positive integer (block height of Bandchain) to a struct `block_detail`.
 
 Example
+
 ```solidity
 contract Bridge {
     /// Mapping from block height to the struct that contains block time and hash of "oracle" iAVL Merkle tree.
@@ -427,6 +431,7 @@ contract Bridge {
 A protobuf encoded chain-id of the specific Bandchain (testnet, mainnet, etc). The encoding always assume that the protobuf index is 6 according to the `CanonicalVote` struct.
 
 Example
+
 ```solidity
 contract Bridge {
     /// The encoded chain's ID of Band.
@@ -448,8 +453,8 @@ no parameters
 
 return values
 
-| Type      | Field Name         | Description                          |
-| --------- | ------------------ | ------------------------------------ |
+| Type      | Field Name         | Description                      |
+| --------- | ------------------ | -------------------------------- |
 | `uint256` | total voting power | value of `total_validator_power` |
 
 #### get_number_of_validators
@@ -503,18 +508,18 @@ return values
 
 #### get_oracle_state
 
-Get the iAVL Merkle tree hash of `oracle module` **_[B]_** from given block height of the Bandchain. This function should read value from the storage oracle_states and then return the value.
+Get the iAVL Merkle tree hash of `oracle module` **_[C]_** from given block height of the Bandchain. This function should read value from the storage oracle_states and then return the value.
 
 params
 
-| Type      | Field Name    | Description                                                                                                                 |
-| --------- | ------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `uint256` | block height  | The height of block in Bandchain that the `oracle module` **_[B]_** hash was relayed on the chain where this Bridge resides |
+| Type      | Field Name   | Description                                                                                                                 |
+| --------- | ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `uint256` | block height | The height of block in Bandchain that the `oracle module` **_[C]_** hash was relayed on the chain where this Bridge resides |
 
 return values
 
-| Type          | Field Name   | Description                     |
-| ------------- | ------------ | ------------------------------- |
+| Type          | Field Name   | Description             |
+| ------------- | ------------ | ----------------------- |
 | `BlockDetail` | block detail | a struct `block_detail` |
 
 #### get_validator_power
@@ -589,7 +594,7 @@ return values
 
 #### encode_varint_unsigned
 
-This function receive an integer as an `input` and then return an [encode varint unsigned of the `input`](#https://developers.google.com/protocol-buffers/docs/encoding).
+This function receive an integer as an `input` and then return an [encode varint unsigned of the `input`](#<https://developers.google.com/protocol-buffers/docs/encoding).>
 
 params
 
@@ -605,7 +610,7 @@ return values
 
 #### encode_varint_signed
 
-This function receive an integer as an `input` and then return an [`encode varint signed of the input`](#https://developers.google.com/protocol-buffers/docs/encoding). We can say it basically return [encode_varint_unsigned(input ⨯ 2)](#encode_varint_unsigned)
+This function receive an integer as an `input` and then return an [`encode varint signed of the input`](#<https://developers.google.com/protocol-buffers/docs/encoding).> We can say it basically return [encode_varint_unsigned(input ⨯ 2)](#encode_varint_unsigned)
 
 params
 
@@ -626,9 +631,9 @@ which will reduce the number of valid block hashes to only one.
 
 params
 
-| Type      | Field Name  | Description                        |
-| --------- | ----------- | ---------------------------------- |
-| `bytes32` | block hash  | a specific block hash on Bandchain |
+| Type      | Field Name | Description                        |
+| --------- | ---------- | ---------------------------------- |
+| `bytes32` | block hash | a specific block hash on Bandchain |
 
 return values
 
@@ -701,9 +706,9 @@ This function receive a struct `multi_store_proof` as an input and then return t
 ```text
                                              ________________[AppHash]_________________
                                             /                                          \
-                        _________________[I14]_________________                        [G]
-                       /                                        \
-            _______[I12]______                          _______[I13]________
+                        _________________[I14]_________________                     __[I15]__
+                       /                                        \				           /         \
+            _______[I12]______                          _______[I13]________     [G]         [H]
            /                  \                        /                    \
       __[I8]__             __[I9]__                __[I10]__              __[I11]__
      /         \          /         \            /          \            /         \
@@ -712,24 +717,24 @@ This function receive a struct `multi_store_proof` as an input and then return t
 [0]   [1]  [2]   [3] [4]   [5]  [6]    [7]  [8]    [9]  [A]    [B]  [C]    [D]  [E]   [F]
 
 # Leafs of AppHash tree
-[0] - auth     [1] - authz    [2] - bank    [3] - capability [4] - crisis  [5] - dist
-[6] - evidence [7] - feegrant [8] - gov     [9] - ibccore    [A] - mint    [B] - oracle
-[C] - params   [D] - slashing [E] - staking [F] - transfer   [G] - upgrade
+[0] - acc (auth) [1] - authz    [2] - bank     [3] - capability [4] - crisis   [5] - dist
+[6] - evidence   [7] - feegrant [8] - gov      [9] - ibccore    [A] - icahost  [B] - mint
+[C] - oracle     [D] - params   [E] - slashing [F] - staking    [G] - transfer [H] - upgrade
 ```
 
 Firstly, calculate double sha256 of multi_store_proof.oracle_iavl_state_hash and then prepend with oracle prefix (uint8(6) + "oracle" + uint8(32)) and then calculate merkle_leaf_hash
 
-1. **_[B]_** = [merkle_leaf_hash](#merkle_leaf_hash)(0x066f7261636c6520 + [sha256](#utility-functions)([sha256](#utility-functions)(`oracleIAVLStateHash`)))
+1. **_[D]_** = [merkle_leaf_hash](#merkle_leaf_hash)(0x066f7261636c6520 + [sha256](#utility-functions)([sha256](#utility-functions)(`oracleIAVLStateHash`)))
 
-2. **_[I5]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[A]_**, **_[B]_**)
+2. **_[I7]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[E]_**, **_[F]_**)
 
 3. **_[I10]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I4]_**, **_[I5]_**)
 
-4. **_[I13]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I10]_**, **_[I11]_**)
+4. **_[I12]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I8]_**, **_[I9]_**)
 
-5. **_[I14]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I12]_**, **_[I13]_**)
+5. **_[I15]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[G]_**, **_[H]_**)
 
-6. `AppHash` = [merkle_inner_hash](#merkle_inner_hash)(**_[I14]_**, **_[G]_**)
+6. `AppHash` = [merkle_inner_hash](#merkle_inner_hash)(**_[I14]_**, **_[I15]_**)
 
 7. return `AppHash`
 
@@ -751,8 +756,8 @@ This fucntion receive a struct `tm_signature` as an input and return a validator
 
 params
 
-| Type          | Field Name    | Description                                            |
-| ------------- | ------------- | ------------------------------------------------------ |
+| Type    | Field Name          | Description                                            |
+| ------- | ------------------- | ------------------------------------------------------ |
 | `bytes` | common encoded part | An encoded result from the `CommonEncodedVotePart` lib |
 | `bytes` | encoded chain id    | The chain id of a specific Bandchain                   |
 
@@ -791,7 +796,7 @@ params
 | `u64`                                   | block_height              | Block height of BancChain            |
 | `{bytes,bytes,bytes,bytes,bytes}`       | multi_store_proof         | A struct `multi_store_proof`         |
 | `{bytes,bytes,bytes,bytes,bytes,bytes}` | block_header_merkle_parts | A struct `block_header_merkle_parts` |
-| `{bytes,bytes}`                         | common_encoded_vote_part  | A struct `common_encoded_vote_part` |
+| `{bytes,bytes}`                         | common_encoded_vote_part  | A struct `common_encoded_vote_part`  |
 | `[{bytes,bytes,u8,bytes,bytes}]`        | signatures                | An array of struct `signatures`      |
 
 return values
@@ -862,9 +867,9 @@ H(i+1) is get_parent_hash(C(i), H(i)).
                  [value]
 ```
 
-1. Read the `oracle module` **_[B]_** hash from the given `block_height` to check if it is available or not.
+1. Read the `oracle module` **_[C]_** hash from the given `block_height` to check if it is available or not.
 
-   - If the `oracle module` **_[B]_** hash is not available for the given `block_height` then `revert`
+   - If the `oracle module` **_[C]_** hash is not available for the given `block_height` then `revert`
    - Else contiune
 
 2. Calculate `H(0)`
@@ -873,9 +878,9 @@ H(i+1) is get_parent_hash(C(i), H(i)).
 
    - For i ∈ {0,1,2,...,n-1},`H(i+1)` = [get_parent_hash](#get_parent_hash)(C(i), H(i))
 
-4. Check that `H(n)` must equal to `oracle module` **_[B]_** hash that just read from the storage in step 1.
+4. Check that `H(n)` must equal to `oracle module` **_[C]_** hash that just read from the storage in step 1.
 
-   - If `H(n)` != `oracle module` **_[B]_** hash then `revert`
+   - If `H(n)` != `oracle module` **_[C]_** hash then `revert`
    - Else continue
 
 5. return `request_packet_and_respond_packet`
@@ -886,12 +891,12 @@ This function verifies that the given request count is a information on Bandchai
 
 params
 
-| Type                | Field Name   | Description                                                        |
-| ------------------- | ------------ | ------------------------------------------------------------------ |
-| `uint256`           | block height | The obi encoded data for oracle state relay and data verification. |
-| `uint256`           | count        | The obi encoded data for oracle state relay and data verification. |
-| `uint256`           | version      | The obi encoded data for oracle state relay and data verification. |
-| `IAVLMerklePath[]`  | block height | The obi encoded data for oracle state relay and data verification. |
+| Type               | Field Name   | Description                                                        |
+| ------------------ | ------------ | ------------------------------------------------------------------ |
+| `uint256`          | block height | The obi encoded data for oracle state relay and data verification. |
+| `uint256`          | count        | The obi encoded data for oracle state relay and data verification. |
+| `uint256`          | version      | The obi encoded data for oracle state relay and data verification. |
+| `IAVLMerklePath[]` | block height | The obi encoded data for oracle state relay and data verification. |
 
 return values
 
@@ -917,7 +922,7 @@ return values
 
 1. Decode the `proof` using obi into 7 elements which are `block_height`, `multi_store_proof`, `block_header_merkle_parts`, `signatures`, `request_packet_and_respond_packet`, `version` and `iavl_merkle_paths`.
 
-2. Relay the `oracle module` **_[B]_** to the state by call the function [relay_block](#relay_block) with `block_height`, `multi_store_proof`, `block_header_merkle_parts` and `signatures` as parameters.
+2. Relay the `oracle module` **_[C]_** to the state by call the function [relay_block](#relay_block) with `block_height`, `multi_store_proof`, `block_header_merkle_parts` and `signatures` as parameters.
 
 3. Return the result from calling function [verify_oracle_data](#verify_oracle_data) with `block_height`,`request_packet_and_respond_packet`, `version` and `iavl_merkle_paths` as parameters.
 
@@ -931,4 +936,4 @@ This function is like the `relay_and_verify` but using the `verify_requests_coun
 
 #### verify_proof
 
-This function is able to verify any data that stored under the `oracle module` **_[B]_** by providing the data hash to the function.
+This function is able to verify any data that stored under the `oracle module` **_[C]_** by providing the data hash to the function.

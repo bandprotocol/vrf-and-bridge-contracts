@@ -10,11 +10,14 @@ contract MockBridge is Bridge {
     constructor(
         ValidatorWithPower[] memory _validators,
         bytes memory _encodedChainID
-    ) Bridge(_validators, _encodedChainID) {}
+    ) {
+        initialize(_validators, _encodedChainID);
+    }
 
-    function setOracleState(uint256 _blockHeight, bytes32 _oracleIAVLStateHash)
-        public
-    {
+    function setOracleState(
+        uint256 _blockHeight,
+        bytes32 _oracleIAVLStateHash
+    ) public {
         blockDetails[_blockHeight].oracleState = _oracleIAVLStateHash;
     }
 }

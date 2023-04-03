@@ -5,15 +5,15 @@ pragma solidity ^0.8.14;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {IBridge} from "../../interfaces/bridge/IBridge.sol";
-import {IVRFProvider} from "../../interfaces/vrf/IVRFProvider.sol";
-import {IVRFConsumer} from "../../interfaces/vrf/IVRFConsumer.sol";
-import {VRFDecoder} from "./library/VRFDecoder.sol";
+import {IBridge} from "../../../interfaces/bridge/IBridge.sol";
+import {IVRFProvider} from "../../../interfaces/vrf/IVRFProvider.sol";
+import {IVRFConsumer} from "../../../interfaces/vrf/IVRFConsumer.sol";
+import {VRFDecoderV1} from "./VRFDecoderV1.sol";
 
 /// @title VRFProvider contract
 /// @notice Contract for working with BandChain's verifiable random function feature
-abstract contract VRFProviderBase is IVRFProvider, Ownable, ReentrancyGuard {
-    using VRFDecoder for bytes;
+abstract contract VRFProviderBaseV1 is IVRFProvider, Ownable, ReentrancyGuard {
+    using VRFDecoderV1 for bytes;
     using Address for address;
 
     IBridge public bridge;
@@ -200,13 +200,13 @@ abstract contract VRFProviderBase is IVRFProvider, Ownable, ReentrancyGuard {
         );
 
         // Check if sender is a worker
-        VRFDecoder.Params memory params = res.params.decodeParams();
+        VRFDecoderV1.Params memory params = res.params.decodeParams();
         require(msg.sender == params.taskWorker, "VRFProviderBase: The sender must be the task worker");
         require(_task.seed == params.seed, "VRFProviderBase: Seed is mismatched");
         require(_task.time == params.time, "VRFProviderBase: Time is mismatched");
 
         // Extract the task's result
-        VRFDecoder.Result memory result = res.result.decodeResult();
+        VRFDecoderV1.Result memory result = res.result.decodeResult();
         bytes32 resultHash = keccak256(result.result);
 
         // Save update the storage task
