@@ -724,15 +724,15 @@ This function receive a struct `multi_store_proof` as an input and then return t
 
 Firstly, calculate double sha256 of multi_store_proof.oracle_iavl_state_hash and then prepend with oracle prefix (uint8(6) + "oracle" + uint8(32)) and then calculate merkle_leaf_hash
 
-1. **_[D]_** = [merkle_leaf_hash](#merkle_leaf_hash)(0x066f7261636c6520 + [sha256](#utility-functions)([sha256](#utility-functions)(`oracleIAVLStateHash`)))
+1. **_[C]_** = [merkle_leaf_hash](#merkle_leaf_hash)(0x066f7261636c6520 + [sha256](#utility-functions)([sha256](#utility-functions)(`oracleIAVLStateHash`)))
 
-2. **_[I7]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[E]_**, **_[F]_**)
+2. **_[I6]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[C]_**, **_[D]_**)
 
-3. **_[I10]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I4]_**, **_[I5]_**)
+3. **_[I11]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I6]_**, **_[I7]_**)
 
-4. **_[I12]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I8]_**, **_[I9]_**)
+4. **_[I13]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I10]_**, **_[I11]_**)
 
-5. **_[I15]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[G]_**, **_[H]_**)
+5. **_[I14]_** = [merkle_inner_hash](#merkle_inner_hash)(**_[I12]_**, **_[I13]_**)
 
 6. `AppHash` = [merkle_inner_hash](#merkle_inner_hash)(**_[I14]_**, **_[I15]_**)
 
