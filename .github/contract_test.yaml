@@ -7,10 +7,10 @@ jobs:
 
     steps:
       - name: Check out GitHub repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Cache compiler installations
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.solcx
@@ -18,9 +18,9 @@ jobs:
           key: ${{ runner.os }}-compiler-cache
 
       - name: Setup node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
-          node-version: '14.x'
+          node-version: '18'
 
       - name: Install ganache
         run: npm install -g ganache
