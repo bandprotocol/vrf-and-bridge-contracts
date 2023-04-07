@@ -328,8 +328,8 @@ A structure of merkle proof that shows how the data leaf is part of the `oracle 
 | ---------------- | --------- | -------------------------------------------------------------- |
 | `isDataOnRight`  | `bool`    | whether the data is on the right subtree of this internal node |
 | `subtreeHeight`  | `uint8`   | the height of this subtree                                     |
-| `subtreeSize`    | `uint64`  | the size of this subtree                                       |
-| `subtreeVersion` | `uint64`  | the latest block height that this subtree has been updated     |
+| `subtreeSize`    | `uint256` | the size of this subtree                                       |
+| `subtreeVersion` | `uint256` | the latest block height that this subtree has been updated     |
 | `siblingHash`    | `bytes32` | hash of the other child subtree                                |
 
 #### MultiStoreProof
