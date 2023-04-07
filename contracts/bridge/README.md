@@ -34,24 +34,24 @@
     - [getAllValidatorPowers](#getallvalidatorpowers)
     - [getValidatorPower](#getvalidatorpower)
     - [updateValidatorPowers](#updatevalidatorpowers)
-      - [relay\_block](#relay_block)
-      - [verify\_oracle\_data](#verify_oracle_data)
-      - [verify\_requests\_count](#verify_requests_count)
-      - [relay\_and\_verify](#relay_and_verify)
-      - [relay\_and\_multi\_verify](#relay_and_multi_verify)
-      - [relay\_and\_verify\_count](#relay_and_verify_count)
-      - [verify\_proof](#verify_proof)
+    - [relayBlock](#relayblock)
+    - [verifyOracleData](#verifyoracledata)
+    - [verifyRequestsCount](#verifyrequestscount)
+    - [relayAndVerify](#relayandverify)
+    - [relayAndMultiVerify](#relayandmultiverify)
+    - [relayAndVerifyCount](#relayandverifycount)
+    - [verifyProof](#verifyproof)
   - [Util Functions](#util-functions)
     - [merkleLeafHash](#merkleleafhash)
     - [merkleInnerHash](#merkleinnerhash)
     - [encodeVarintUnsigned](#encodevarintunsigned)
     - [encodeVarintSigned](#encodevarintsigned)
     - [encodeTime](#encodetime)
-      - [getParentHash](#getparenthash)
+    - [getParentHash](#getparenthash)
     - [getBlockHeader](#getblockheader)
     - [getAppHash](#getapphash)
     - [checkPartsAndEncodedCommonParts](#checkpartsandencodedcommonparts)
-      - [check\_time\_and\_recover\_signer](#check_time_and_recover_signer)
+    - [checkTimeAndRecoverSigner](#checktimeandrecoversigner)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -70,11 +70,11 @@ To implement the **Bridge** we only need two utility functions.
 
 ## Dependencies
 
-- **OBI** or Oracle Binary Encoding is the standard way to serialized and deserialize binary data in the Bandchain ecosystem.
+- **OBI** or Oracle Binary Encoding is the standard way to serialize and deserialize binary data in the Bandchain ecosystem.
   - see OBI wiki page [here](https://github.com/bandprotocol/bandchain/wiki/Oracle-Binary-Encoding-(OBI))
   - see example implementations [here](https://github.com/bandprotocol/bandchain/tree/master/obi)
 
-- **ProtobufLib** or Oracle Binary Encoding is the standard way to serialized and deserialize binary data in the BandChain ecosystem.
+- **ProtobufLib** or Oracle Binary Encoding is the standard way to serialize and deserialize binary data in the BandChain ecosystem.
   - we adopted the lib from [here](https://github.com/lazyledger/protobuf3-solidity-lib/blob/master/contracts/ProtobufLib.sol)
   - see the .sol file [here](./library/ProtobufLib.sol)
 
@@ -187,7 +187,7 @@ As described above, the entire process can be divided into two parts.
 
 ### Getting the proof from BandChain
 
-Usually the client can use the Tendermint RPC call to ask for the information they need to construct the proof.
+Usually, the client can use the Tendermint RPC call to ask for the information they need to construct the proof.
 However, we have implemented an endpoint to make this process easier. Our proof endpoint on the mainnet is `https://laozi4.bandchain.org/api/oracle/proof` + `/<A_SPECIFIC_REQUEST_ID>`.
 
 Please see this example [proof of the request number 11124603](https://laozi4.bandchain.org/api/oracle/proof/11124603).
@@ -290,7 +290,7 @@ A structure that encapsulates the public key and the amount of voting power on B
 | Field Name | Type      | Description                                                                                                                           |
 | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `addr`     | `address` | validator's public key or something unique that is derived from public key such as hash of public key, compression form of public key |
-| `power`    | `uint64`  | validator's voting power on Bandchain                                                                                                 |
+| `power`    | `uint256` | validator's voting power on Bandchain                                                                                                 |
 
 #### Result
 
@@ -508,7 +508,7 @@ Get voting power of a validator on Bandchain from the storage `validatorPowers`.
 
 ### updateValidatorPowers
 
-Update validator powers by `VALIDATORS_UPDATER_ROLE`. This function receive array of struct `validatorWithPower` and then update storages `validatorPowers` and `totalVotingPower`. The encoded format of the array of struct `validatorWithPower` can be used instead in case the platform does not support the use of the complex type parameters.
+Update validator powers by `VALIDATORS_UPDATER_ROLE`. This function receives an array of struct `validatorWithPower` and then updates storages `validatorPowers`` and `totalVotingPower`. The encoded format of the array of struct `validatorWithPower` can be used instead in case the platform does not support the use of the complex type parameters.
 
 **params**
 
@@ -522,21 +522,20 @@ Update validator powers by `VALIDATORS_UPDATER_ROLE`. This function receive arra
 no return value
 ```
 
-#### relay_block
+### relayBlock
 
 This function relays a new `oracle module` **_[B]_** hash to the `Bridge`.
 
-params
+**params**
 
-| Type                                    | Field Name                | Description                          |
-| --------------------------------------- | ------------------------- | ------------------------------------ |
-| `uint64`                                | block_height              | Block height of BancChain            |
-| `{bytes,bytes,bytes,bytes,bytes}`       | MultiStoreProof           | A struct `MultiStoreProof`           |
-| `{bytes,bytes,bytes,bytes,bytes,bytes}` | block_header_merkle_parts | A struct `block_header_merkle_parts` |
-| `{bytes,bytes}`                         | common_encoded_vote_part  | A struct `common_encoded_vote_part`  |
-| `[{bytes,bytes,uint8,bytes,bytes}]`     | signatures                | An array of struct `signatures`      |
+| Type                     | Field Name            | Description                                               |
+| ------------------------ | --------------------- | --------------------------------------------------------- |
+| `MultiStore`             | multiStore            | Extra multi store to compute app hash                     |
+| `BlockHeaderMerkleParts` | merkleParts           | Extra merkle parts to compute block hash                  |
+| `CommonEncodedVotePart`  | commonEncodedVotePart | The common part of a block that all validators agree upon |
+| `TMSignature`            | signatures            | The signatures signed on this block                       |
 
-return values
+**return values**
 
 ```
 no return value
@@ -544,37 +543,37 @@ no return value
 
 1. Calculate `AppHash` by calling [getAppHash](#getAppHash)(`MultiStoreProof`).
 
-2. Calculate `BlockHash` by calling [get_block_header](#get_block_header)(`block_header_merkle_parts`, `app_hash`, `block_height`).
+2. Calculate `BlockHash` by calling [getBlockHeader](#getBlockHeader)(`data`, `appHash`).
 
-3. Loop recover every signature from `signatures`. In each round we will get the address of the validator who have signed on the hash of `CanonicalVote`.
+3. Loop to recover every signature from `signatures`. In each round, we will get the address of the validator who has signed on the hash of `CanonicalVote`.
 
    - Check that there is no repeated address.
-   - Read validator's voting power from storage [voting_powers](#voting_powers) by the public key that just recovered. If the public key is not found then the voting power should be 0.
+   - Read validator's voting power from storage [votingPowers](#votingPowers) by the public key that just recovered. If the public key is not found then the voting power should be 0.
    - Accumulate the voting power
 
-4. Check that the accumulate of voting power should be greater than or equal 2/3 of the [total_validator_power](#total_validator_power).
+4. Check that the accumulation of voting power should be greater than or equal 2/3 of the [totalValidatorPower](#totalValidatorPower).
 
-5. Save the `oracle mudule` **_[B]_** hash to the storage [oracle_state](#oracle_state).
+5. Save the `oracle module` **_[B]_** hash to the storage [oracleState](#oracleState).
 
 
-#### verify_oracle_data
+### verifyOracleData
 
-This function verifies that the given data is a valid data on Bandchain as of the given block height.
+This function verifies that the given data is valid data on Bandchain as of the given block height.
 
-params
+**params**
 
-| Type                                                                                      | Field Name                        | Description                                                                                                       |
-| ----------------------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `uint64`                                                                                  | block_height                      | Block height of BancChain                                                                                         |
-| `{{string,uint64,bytes,uint64,uint64},{string,uint64,uint64,uint64,uint64,uint32,bytes}}` | request_packet_and_respond_packet | A struct or a tuple of `request_packet` and `response_packet`                                                     |
-| `uint64`                                                                                  | version                           | Lastest block height that the data node was updated                                                               |
-| `[{bool,uint8,uint64,uint64,bytes}]`                                                      | iavl_merkle_paths                 | An array of `iavl_merkle_path` which is the merkle proof that shows how the data leave is part of the oracle iAVL |
+| Type               | Field Name  | Description                                                           |
+| ------------------ | ----------- | --------------------------------------------------------------------- |
+| `uint256`          | blockHeight | Block height of BancChain                                             |
+| `Result`           | result      | The result of the request                                             |
+| `uint256`          | version     | Lastest block height that the data node was updated                   |
+| `IAVLMerklePath[]` | merklePaths | Merkle proof that shows how the data leave is part of the oracle iAVL |
 
-return values
+**return values**
 
-| Type                                                                                      | Field Name                        | Description                                                   |
-| ----------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------- |
-| `{{string,uint64,bytes,uint64,uint64},{string,uint64,uint64,uint64,uint64,uint32,bytes}}` | request_packet_and_respond_packet | A struct or a tuple of `request_packet` and `response_packet` |
+| Type     | Description               |
+| -------- | ------------------------- |
+| `Result` | The result of the request |
 
 ```text
 n is the height of IAVL merkle tree.
@@ -605,83 +604,83 @@ H(i+1) is get_parent_hash(C(i), H(i)).
                  [value]
 ```
 
-1. Read the `oracle module` **_[C]_** hash from the given `block_height` to check if it is available or not.
+1. Read the `oracle module` **_[C]_** hash from the given `blockHeight` to check if it is available or not.
 
-   - If the `oracle module` **_[C]_** hash is not available for the given `block_height` then `revert`
+   - If the `oracle module` **_[C]_** hash is not available for the given `blockHeight` then `revert`
    - Else contiune
 
 2. Calculate `H(0)`
 
-3. Calculate the hash of parent node of H(i) and C(i) hash by hashing from bottom to the top according to [`merkle tree`](https://en.wikipedia.org/wiki/Merkle_tree) hashing scheme.
+3. Calculate the hash of the parent node of H(i) and C(i) hash by hashing from the bottom to the top according to [`merkle tree`](https://en.wikipedia.org/wiki/Merkle_tree) hashing scheme.
 
-   - For i ∈ {0,1,2,...,n-1},`H(i+1)` = [get_parent_hash](#get_parent_hash)(C(i), H(i))
+   - For i ∈ {0,1,2,...,n-1},`H(i+1)` = [getParentHash](#getParentHash)(C(i), H(i))
 
 4. Check that `H(n)` must equal to `oracle module` **_[C]_** hash that just read from the storage in step 1.
 
    - If `H(n)` != `oracle module` **_[C]_** hash then `revert`
    - Else continue
 
-5. return `request_packet_and_respond_packet`
+5. return `result`
 
-#### verify_requests_count
+### verifyRequestsCount
 
-This function verifies that the given request count is a information on Bandchain at the given block height.
+This function verifies that the given request count is information on Bandchain at the given block height.
 
-params
+**params**
 
-| Type               | Field Name   | Description                                                        |
-| ------------------ | ------------ | ------------------------------------------------------------------ |
-| `uint256`          | block height | The obi encoded data for oracle state relay and data verification. |
-| `uint256`          | count        | The obi encoded data for oracle state relay and data verification. |
-| `uint256`          | version      | The obi encoded data for oracle state relay and data verification. |
-| `IAVLMerklePath[]` | block height | The obi encoded data for oracle state relay and data verification. |
+| Type               | Field Name  | Description                                                           |
+| ------------------ | ----------- | --------------------------------------------------------------------- |
+| `uint256`          | blockHeight | The block height                                                      |
+| `uint256`          | count       | The requests count on the block                                       |
+| `uint256`          | version     | Lastest block height that the data node was updated                   |
+| `IAVLMerklePath[]` | merklePaths | Merkle proof that shows how the data leave is part of the oracle iAVL |
 
-return values
+**return values**
 
-| Type                                                                                      | Field Name                        | Description                                                   |
-| ----------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------- |
-| `{{string,uint64,bytes,uint64,uint64},{string,uint64,uint64,uint64,uint64,uint32,bytes}}` | request_packet_and_respond_packet | A struct or a tuple of `request_packet` and `response_packet` |
+| Type     | Description        |
+| -------- | ------------------ |
+| `uint64` | time of the block  |
+| `uint64` | The requests count |
 
-#### relay_and_verify
+### relayAndVerify
 
 This function performs oracle state relay and oracle data verification in one go. The caller submits the obi encoded proof and receives back the decoded data, ready to be validated and used.
 
-params
+**params**
 
-| Type    | Field Name | Description                                                        |
-| ------- | ---------- | ------------------------------------------------------------------ |
-| `bytes` | proof      | The obi encoded data for oracle state relay and data verification. |
+| Type    | Field Name | Description                                                   |
+| ------- | ---------- | ------------------------------------------------------------- |
+| `bytes` | data       | The encoded data for oracle state relay and data verification |
 
-return values
+**return values**
 
-| Type                                                                                      | Field Name                        | Description                                                   |
-| ----------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------- |
-| `{{string,uint64,bytes,uint64,uint64},{string,uint64,uint64,uint64,uint64,uint32,bytes}}` | request_packet_and_respond_packet | A struct or a tuple of `request_packet` and `response_packet` |
+| Type     | Description                      |
+| -------- | -------------------------------- |
+| `Result` | The result of the oracle request |
 
-1. Decode the `proof` using obi into 7 elements which are `block_height`, `multiStoreProof`, `block_header_merkle_parts`, `signatures`, `request_packet_and_respond_packet`, `version` and `iavl_merkle_paths`.
+1. Decode the `proof` using obi into 7 elements which are `blockHeight`, `multiStore`, `merkleParts`, `signatures`, `result`, `version` and `merklePaths`.
 
-2. Relay the `oracle module` **_[C]_** to the state by call the function [relay_block](#relay_block) with `block_height`, `MultiStoreProof`, `block_header_merkle_parts` and `signatures` as parameters.
+2. Relay the `oracle module` **_[C]_** to the state by calling the function [relayBlock](#relayBlock) with `multiStore`, `merkleParts`, `commonEncodedVotePart` and `signatures` as parameters.
 
-3. Return the result from calling function [verify_oracle_data](#verify_oracle_data) with `block_height`,`request_packet_and_respond_packet`, `version` and `iavl_merkle_paths` as parameters.
+3. Return the result from calling function [verifyOracleData](#verifyOracleData) with `blockHeight`,`result`, `version` and `merklePaths` as parameters.
 
-#### relay_and_multi_verify
+### relayAndMultiVerify
 
-This function is like the `relay_and_verify` but the input contain multiple of `IAVLMerklePath[]` for multiple requests.
+This function is like the `relayAndVerify` but the input contains multiple of `IAVLMerklePath[]` for multiple requests.
 
-#### relay_and_verify_count
+### relayAndVerifyCount
+This function is like the `relayAndVerify` but uses the `verifyRequestsCount` instead of the `verifyOracleData`.
 
-This function is like the `relay_and_verify` but using the `verify_requests_count` instead of the `verify_oracle_data`.
+### verifyProof
 
-#### verify_proof
-
-This function is able to verify any data that stored under the `oracle module` **_[C]_** by providing the data hash to the function.
+This function is able to verify any data stored under the `oracle module` **_[C]_** by providing the data hash to the function.
 
 
 ## Util Functions
 
 ### merkleLeafHash
 
-This function receive a bytes and then does these following step.
+This function receives bytes and then does the following steps.
 
 1. prepend the `input` with a zero byte.
 2. return [sha256](#utility-functions) of the result from `1.`.
@@ -700,7 +699,7 @@ This function receive a bytes and then does these following step.
 
 ### merkleInnerHash
 
-This function takes two bytes `left` and `right` and then does these the following steps.
+This function takes two bytes `left` and `right` and then do these the following steps.
 
 1. append `left` with `right` and then prepend it with a byte 01.
 2. return sha256 of the result from `1.`.
@@ -719,7 +718,7 @@ This function takes two bytes `left` and `right` and then does these the followi
 
 ### encodeVarintUnsigned
 
-This function receive an integer as an input and then return an [encode varint unsigned integer`](https://protobuf.dev/programming-guides/encoding/#varints).
+This function receives an integer as an input and then returns an [encode varint unsigned integer`](https://protobuf.dev/programming-guides/encoding/#varints).
 
 **params**
 
@@ -735,7 +734,7 @@ This function receive an integer as an input and then return an [encode varint u
 
 ### encodeVarintSigned
 
-This function receive an integer as an `input` and then return an [`encode varint signed integer`](https://protobuf.dev/programming-guides/encoding/#signed-ints). We can say it basically return the result of encode_varint_unsigned on input ⨯ 2
+This function receives an integer as an `input` and then returns an [`encode varint signed integer`](https://protobuf.dev/programming-guides/encoding/#signed-ints). We can say it basically returns the result of encode_varint_unsigned on input ⨯ 2
 
 **params**
 
@@ -752,7 +751,7 @@ This function receive an integer as an `input` and then return an [`encode varin
 
 ### encodeTime
 
-This function takes second and sub-second and return tendermint time encoded.
+This function takes a second and sub-second and returns tendermint time encoded.
 
 **params**
 
@@ -767,7 +766,7 @@ This function takes second and sub-second and return tendermint time encoded.
 | ------- | ----------- |
 | `bytes` | Encode time |
 
-#### getParentHash
+### getParentHash
 
 This function takes a struct `IAVLMerklePath` (sibling of current node) and current subtree hash, then return the parent hash of them.
 
@@ -786,7 +785,7 @@ This function takes a struct `IAVLMerklePath` (sibling of current node) and curr
 
 ### getBlockHeader
 
-This function receive 2 parameters which are struct `BlockHeaderMerkleParts`and `appHash`**_[A]_**. It will calculate and return the `BlockHash` according to [`merkle tree`](https://en.wikipedia.org/wiki/Merkle_tree) hashing scheme.
+This function receives 2 parameters which are struct `BlockHeaderMerkleParts` and `appHash`**_[A]_**. It will calculate and return the `BlockHash` according to [`merkle tree`](https://en.wikipedia.org/wiki/Merkle_tree) hashing scheme.
 
 ```text
                                 __ [BlockHash] __
@@ -845,7 +844,7 @@ This function receive 2 parameters which are struct `BlockHeaderMerkleParts`and 
 
 ### getAppHash
 
-This function receive a struct `MultiStoreProof` as an input and then return the `AppHash` by the calculation according to [`merkle tree`](https://en.wikipedia.org/wiki/Merkle_tree) hashing scheme.
+This function receives a struct `MultiStoreProof` as an input and then returns the `AppHash` by the calculation according to [`merkle tree`](https://en.wikipedia.org/wiki/Merkle_tree) hashing scheme.
 
 ```text
                                              ________________[AppHash]_________________
@@ -896,7 +895,7 @@ Firstly, calculate double sha256 of MultiStoreProof.oracle_iavl_state_hash and t
 
 ### checkPartsAndEncodedCommonParts
 
-This function help bounding the size of the prefix and suffix, which will reduce the number of valid block hashes to only one and return a common part of message for verify validator signature.
+This function helps bounding the size of the prefix and suffix, which will reduce the number of valid block hashes to only one and return a common part of the message for verifying the validator signature.
 
 **params**
 
@@ -911,19 +910,20 @@ This function help bounding the size of the prefix and suffix, which will reduce
 | ------- | --------------------------------------------- |
 | `bytes` | Encode packed of prefix + block hash + suffix |
 
-#### check_time_and_recover_signer
+### checkTimeAndRecoverSigner
 
-This fucntion receive a struct `tm_signature` as an input and return a validator's public key by using [ecrecover](#utility-functions).
+This function receives a struct `TmSignature` as an input and returns a validator's public key by using [ecrecover](#utility-functions).
 
-params
+**params**
 
-| Type    | Field Name          | Description                                            |
-| ------- | ------------------- | ------------------------------------------------------ |
-| `bytes` | common encoded part | An encoded result from the `CommonEncodedVotePart` lib |
-| `bytes` | encoded chain id    | The chain id of a specific Bandchain                   |
+| Type          | Field Name        | Description                           |
+| ------------- | ----------------- | ------------------------------------- |
+| `TMSignature` | data              | Signature of the validator            |
+| `bytes`       | commonEncodedPart | The common part of vote on this block |
+| `bytes`       | encodedChainID    | The chain id of a specific Bandchain  |
 
-return values
+**return values**
 
-| Type      | Field Name        | Description                |
-| --------- | ----------------- | -------------------------- |
-| `address` | validator address | The address of a validator |
+| Type      | Description                |
+| --------- | -------------------------- |
+| `address` | The address of a validator |
