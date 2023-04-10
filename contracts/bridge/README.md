@@ -28,7 +28,7 @@
       - [validatorPowers](#validatorpowers)
       - [blockDetails](#blockdetails)
       - [encodedChainID](#encodedchainid)
-  - [Brige Functions](#brige-functions)
+  - [Bridge Functions](#bridge-functions)
     - [getNumberOfValidators](#getnumberofvalidators)
     - [getValidators](#getvalidators)
     - [getAllValidatorPowers](#getallvalidatorpowers)
@@ -439,7 +439,7 @@ contract Bridge {
 }
 ```
 
-## Brige Functions
+## Bridge Functions
 
 ### getNumberOfValidators
 
@@ -607,7 +607,7 @@ H(i+1) is get_parent_hash(C(i), H(i)).
 1. Read the `oracle module` **_[C]_** hash from the given `blockHeight` to check if it is available or not.
 
    - If the `oracle module` **_[C]_** hash is not available for the given `blockHeight` then `revert`
-   - Else contiune
+   - Else continue
 
 2. Calculate `H(0)`
 
