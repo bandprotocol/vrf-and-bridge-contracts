@@ -1,19 +1,21 @@
 import pytest
 import brownie
 from brownie import accounts, Bridge
-from conftest import MockTask, MockConfig
 from random import randint
+from collections import namedtuple
 
 INPUT_SEED_1 = [("mumu1")]
 INPUT_SEED_2 = [("mumu2")]
 INPUT_SEED_3 = [("mumu3")]
 
+Config = namedtuple("Config", ["oracle_script_id", "min_count", "ask_count", "task_fee"])
+
 # (os_id,min_count,ask_count,task_fee)
 FEE_1E14 = 10**14
 FEE_1E15 = FEE_1E14 * 10
 FEE_1E16 = FEE_1E15 * 10
-PROVIDER_CONFIG_1 = MockConfig(36, 10, 16, FEE_1E14)
-PROVIDER_CONFIG_2 = MockConfig(999, 1, 16, FEE_1E15)
+PROVIDER_CONFIG_1 = Config(36, 10, 16, FEE_1E14)
+PROVIDER_CONFIG_2 = Config(999, 1, 16, FEE_1E15)
 MOCK_TIMESTAMP = 1655972425
 MOCK_BLOCK_HASH = "0xdefbfd2812ce28404dc436710582118cfa12cd4c0fa3694323209f012ca36243"
 MOCK_CHAIN_ID = 112
@@ -44,9 +46,10 @@ def test_set_bridge(vrf_provider_1, bridge_1):
     assert vrf_provider_1.bridge() == bridge_1.address
 
     # deploy new bridge and set
-    new_bridge = accounts[0].deploy(Bridge, [], "0x")
+    new_bridge = accounts[0].deploy(Bridge)
+    new_bridge.initialize([], "0x")
+
     tx = vrf_provider_1.setBridge(new_bridge.address, {"from": accounts[0]})
-    assert tx.status == 1
     assert dict(tx.events["SetBridge"][0])["newBridge"] == new_bridge.address
     assert vrf_provider_1.bridge() == new_bridge.address
 
@@ -65,8 +68,6 @@ def test_set_bridge_script_id_not_owner(vrf_provider_1, bridge_1):
 def test_set_oracle_script_id(vrf_provider_1, _oracle_script_id):
     assert vrf_provider_1.oracleScriptID() == PROVIDER_CONFIG_1.oracle_script_id
     tx = vrf_provider_1.setOracleScriptID(_oracle_script_id, {"from": accounts[0]})
-
-    assert tx.status == 1
     assert dict(tx.events["SetOracleScriptID"][0])["newOID"] == _oracle_script_id
     assert vrf_provider_1.oracleScriptID() == PROVIDER_CONFIG_2.oracle_script_id
 
@@ -81,8 +82,6 @@ def test_set_oracle_script_id_not_owner(vrf_provider_1, _oracleScriptID):
 def test_set_min_count(vrf_provider_1, _min_count):
     assert vrf_provider_1.minCount() == PROVIDER_CONFIG_1.min_count
     tx = vrf_provider_1.setMinCount(_min_count, {"from": accounts[0]})
-
-    assert tx.status == 1
     assert dict(tx.events["SetMinCount"][0])["newMinCount"] == _min_count
     assert vrf_provider_1.minCount() == PROVIDER_CONFIG_2.min_count
 
@@ -97,8 +96,6 @@ def test_set_min_count_not_owner(vrf_provider_1, _minCount):
 def test_set_ask_count(vrf_provider_1, _ask_count):
     assert vrf_provider_1.askCount() == PROVIDER_CONFIG_1.ask_count
     tx = vrf_provider_1.setAskCount(_ask_count, {"from": accounts[0]})
-
-    assert tx.status == 1
     assert dict(tx.events["SetAskCount"][0])["newAskCount"] == _ask_count
     assert vrf_provider_1.askCount() == PROVIDER_CONFIG_2.ask_count
 
@@ -113,8 +110,6 @@ def test_set_ask_count_not_owner(vrf_provider_1, _askCount):
 def test_set_ask_count(vrf_provider_1, _task_fee):
     assert vrf_provider_1.minimumFee() == PROVIDER_CONFIG_1.task_fee
     tx = vrf_provider_1.setMinimumFee(_task_fee, {"from": accounts[0]})
-
-    assert tx.status == 1
     assert dict(tx.events["SetMinimumFee"][0])["newMinimumFee"] == _task_fee
     assert vrf_provider_1.minimumFee() == PROVIDER_CONFIG_2.task_fee
 
@@ -126,36 +121,34 @@ def test_set_ask_count_not_owner(vrf_provider_1, _task_fee):
 
 
 @pytest.mark.parametrize("", [()])
-def test_getting_random_task_should_be_an_empty_task(vrf_provider_1):
+def test_getting_random_task_should_be_an_empty_task(vrf_provider_1, default_task_v1):
     for _ in range(5):
         random_nonce = randint(20, 100)
-        assert vrf_provider_1.tasks(random_nonce) == MockTask().to_tuple()
+        assert vrf_provider_1.tasks(random_nonce) == default_task_v1
 
 
 @pytest.mark.parametrize("client_seed", INPUT_SEED_1)
-def test_request_random_data_fee_is_lower_than_the_minimum_fee(vrf_provider_1, client_seed):
+def test_request_random_data_fee_is_lower_than_the_minimum_fee(vrf_provider_1, client_seed, default_task_v1):
     nonce = 0
-    caller = accounts[1]
 
     task = vrf_provider_1.tasks(nonce)
-    assert task == MockTask().to_tuple()
+    assert task == default_task_v1
 
     with brownie.reverts("VRFProviderBase: Task fee is lower than the minimum fee"):
         vrf_provider_1.requestRandomData(client_seed, {"from": accounts[1], "value": FEE_1E14})
 
 
 @pytest.mark.parametrize("client_seed", INPUT_SEED_1)
-def test_request_random_data_success_1(vrf_provider_1, client_seed):
+def test_request_random_data_success_1(vrf_provider_1, client_seed, default_task_v1):
     nonce = 0
     caller = accounts[1]
 
     task = vrf_provider_1.tasks(nonce)
-    assert task == MockTask().to_tuple()
+    assert task == default_task_v1
     assert vrf_provider_1.balance() == 0
     assert vrf_provider_1.taskNonce() == nonce
 
     tx = vrf_provider_1.requestRandomData(client_seed, {"from": accounts[1], "value": FEE_1E15})
-    assert tx.status == 1
 
     seed = vrf_provider_1.getSeed(MOCK_TIMESTAMP, caller, MOCK_BLOCK_HASH, MOCK_CHAIN_ID, nonce, client_seed)
 
@@ -170,27 +163,25 @@ def test_request_random_data_success_1(vrf_provider_1, client_seed):
     assert events["seed"] == seed
 
     task = vrf_provider_1.tasks(nonce)
-    assert task == MockTask(False, MOCK_TIMESTAMP, caller, FEE_1E15, seed, client_seed).to_tuple()
+    assert task == (False, MOCK_TIMESTAMP, caller, FEE_1E15, seed, client_seed, "0x", "0x")
     assert vrf_provider_1.balance() == FEE_1E15
     assert vrf_provider_1.taskNonce() == nonce + 1
 
 
 @pytest.mark.parametrize("client_seed", INPUT_SEED_2)
-def test_request_random_data_with_redundant_fee_success_2(vrf_provider_1, client_seed):
+def test_request_random_data_with_redundant_fee_success_2(vrf_provider_1, client_seed, default_task_v1):
     nonce = 1
     caller = accounts[1]
 
     task = vrf_provider_1.tasks(nonce)
-    assert task == MockTask().to_tuple()
+    assert task == default_task_v1
     assert vrf_provider_1.balance() == FEE_1E15
     assert vrf_provider_1.taskNonce() == nonce
 
     tx = vrf_provider_1.requestRandomData(client_seed, {"from": accounts[1], "value": FEE_1E16})
-    assert tx.status == 1
-
     seed = vrf_provider_1.getSeed(MOCK_TIMESTAMP, caller, MOCK_BLOCK_HASH, MOCK_CHAIN_ID, nonce, client_seed)
-
     events = dict(tx.events["RandomDataRequested"][0])
+
     assert events["nonce"] == nonce
     assert events["caller"] == caller
     assert events["clientSeed"] == client_seed
@@ -201,7 +192,7 @@ def test_request_random_data_with_redundant_fee_success_2(vrf_provider_1, client
     assert events["seed"] == seed
 
     task = vrf_provider_1.tasks(nonce)
-    assert task == MockTask(False, MOCK_TIMESTAMP, caller, FEE_1E16, seed, client_seed).to_tuple()
+    assert task == (False, MOCK_TIMESTAMP, caller, FEE_1E16, seed, client_seed, "0x", "0x")
     assert vrf_provider_1.balance() == FEE_1E15 + FEE_1E16
     assert vrf_provider_1.taskNonce() == nonce + 1
 
@@ -218,37 +209,38 @@ def test_relay_proof_success(vrf_provider_1, testnet_vrf_proof):
         vrf_provider_1.oracleScriptID(),
         vrf_provider_1.minCount(),
         vrf_provider_1.askCount(),
-        vrf_provider_1.minimumFee()
-    ) == PROVIDER_CONFIG_2.to_tuple()
+        vrf_provider_1.minimumFee(),
+    ) == PROVIDER_CONFIG_2
 
     # set back the parameters
-    for call, param in zip((
+    for call, param in zip(
+        (
             vrf_provider_1.setOracleScriptID,
             vrf_provider_1.setMinCount,
             vrf_provider_1.setAskCount,
-            vrf_provider_1.setMinimumFee
-    ), PROVIDER_CONFIG_1.to_tuple()):
-        tx = call(param, {"from": accounts[0]})
-        assert tx.status == 1
+            vrf_provider_1.setMinimumFee,
+        ),
+        PROVIDER_CONFIG_1,
+    ):
+        call(param, {"from": accounts[0]})
 
     assert (
         vrf_provider_1.oracleScriptID(),
         vrf_provider_1.minCount(),
         vrf_provider_1.askCount(),
-        vrf_provider_1.minimumFee()
-    ) == PROVIDER_CONFIG_1.to_tuple()
+        vrf_provider_1.minimumFee(),
+    ) == PROVIDER_CONFIG_1
 
     nonce = 0
 
     # before relay balance
     account2_prev_balance = accounts[2].balance()
 
-    tx = vrf_provider_1.relayProof(testnet_vrf_proof, nonce, {"from": accounts[2]})
-    assert tx.status == 1
+    vrf_provider_1.relayProof(testnet_vrf_proof, nonce, {"from": accounts[2]})
 
     task = vrf_provider_1.tasks(nonce)
 
-    assert task == MockTask(
+    assert task == (
         True,
         MOCK_TIMESTAMP,
         accounts[1].address,
@@ -257,7 +249,7 @@ def test_relay_proof_success(vrf_provider_1, testnet_vrf_proof):
         INPUT_SEED_1[0],
         EXPECTED_PROOF_1,
         EXPECTED_RESULT_1,
-    ).to_tuple()
+    )
 
     # the balance after relaying
     # the relayer must receive the fee
@@ -271,7 +263,7 @@ def test_vrf_request_relay_consume_fail_task_already_resolved(vrf_provider_1, te
 
 
 @pytest.mark.parametrize("client_seed", INPUT_SEED_2)
-def test_request_random_data_2(vrf_provider_1, client_seed):
+def test_request_random_data_2(vrf_provider_1, client_seed, default_task_v1):
     nonce = 2
     caller = accounts[2]
 
@@ -281,10 +273,9 @@ def test_request_random_data_2(vrf_provider_1, client_seed):
     vrf_provider_1.setAskCount(PROVIDER_CONFIG_2.ask_count, {"from": accounts[0]})
 
     task = vrf_provider_1.tasks(nonce)
-    assert task == MockTask().to_tuple()
+    assert task == default_task_v1
 
     tx = vrf_provider_1.requestRandomData(client_seed, {"from": accounts[2], "value": FEE_1E15})
-    assert tx.status == 1
 
     seed = vrf_provider_1.getSeed(MOCK_TIMESTAMP, caller, MOCK_BLOCK_HASH, MOCK_CHAIN_ID, nonce, client_seed)
 
@@ -298,16 +289,15 @@ def test_request_random_data_2(vrf_provider_1, client_seed):
     assert events["seed"] == seed
 
     task = vrf_provider_1.tasks(nonce)
-    assert task == MockTask(False, MOCK_TIMESTAMP, caller, FEE_1E15, seed, client_seed).to_tuple()
+    assert task == (False, MOCK_TIMESTAMP, caller, FEE_1E15, seed, client_seed, "0x", "0x")
     assert vrf_provider_1.balance() == FEE_1E15 + FEE_1E16
     assert vrf_provider_1.taskNonce() == nonce + 1
 
 
 def test_relay_proof_min_count_not_match(vrf_provider_1, testnet_vrf_proof_2_16_min_count_not_match):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     nonce = 2
@@ -316,10 +306,9 @@ def test_relay_proof_min_count_not_match(vrf_provider_1, testnet_vrf_proof_2_16_
 
 
 def test_relay_proof_ask_count_not_match(vrf_provider_1, testnet_vrf_proof_1_15_ask_count_not_match):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     nonce = 2
@@ -328,10 +317,9 @@ def test_relay_proof_ask_count_not_match(vrf_provider_1, testnet_vrf_proof_1_15_
 
 
 def test_relay_proof_incorrect_worker(vrf_provider_1, testnet_vrf_proof_1_16_incorrect_worker):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     nonce = 2
@@ -340,10 +328,9 @@ def test_relay_proof_incorrect_worker(vrf_provider_1, testnet_vrf_proof_1_16_inc
 
 
 def test_relay_proof_incorrect_os_id(vrf_provider_1, testnet_vrf_proof_1_16_incorrect_os_id):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     nonce = 2
@@ -352,10 +339,9 @@ def test_relay_proof_incorrect_os_id(vrf_provider_1, testnet_vrf_proof_1_16_inco
 
 
 def test_relay_proof_not_successfully_resolved(vrf_provider_1, testnet_vrf_proof_1_16_not_successfully_resolved):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     nonce = 2
@@ -364,10 +350,9 @@ def test_relay_proof_not_successfully_resolved(vrf_provider_1, testnet_vrf_proof
 
 
 def test_relay_proof_seed_mismatch(vrf_provider_1, testnet_vrf_proof_1_16_seed_mismatch):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     nonce = 2
@@ -376,10 +361,9 @@ def test_relay_proof_seed_mismatch(vrf_provider_1, testnet_vrf_proof_1_16_seed_m
 
 
 def test_relay_proof_time_mismatch(vrf_provider_1, testnet_vrf_proof_1_16_time_mismatch):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     nonce = 2
@@ -388,10 +372,9 @@ def test_relay_proof_time_mismatch(vrf_provider_1, testnet_vrf_proof_1_16_time_m
 
 
 def test_relay_proof_task_not_found(vrf_provider_1, testnet_vrf_proof_1_16):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     # invalid nonce
@@ -401,10 +384,9 @@ def test_relay_proof_task_not_found(vrf_provider_1, testnet_vrf_proof_1_16):
 
 
 def test_relay_proof_not_enough_power(vrf_provider_1, bridge_1, bridge_2, testnet_vrf_proof_1_16):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     # change bridge to bridge_2
@@ -420,10 +402,9 @@ def test_relay_proof_not_enough_power(vrf_provider_1, bridge_1, bridge_2, testne
 
 @pytest.mark.parametrize("client_seed", INPUT_SEED_2)
 def test_relay_proof_1_16_success(vrf_provider_1, testnet_vrf_proof_1_16, client_seed):
-    assert (
-        vrf_provider_1.minCount(), vrf_provider_1.askCount()
-    ) == (
-        PROVIDER_CONFIG_2.min_count, PROVIDER_CONFIG_2.ask_count
+    assert (vrf_provider_1.minCount(), vrf_provider_1.askCount()) == (
+        PROVIDER_CONFIG_2.min_count,
+        PROVIDER_CONFIG_2.ask_count,
     )
 
     # before relay balance
@@ -431,9 +412,9 @@ def test_relay_proof_1_16_success(vrf_provider_1, testnet_vrf_proof_1_16, client
 
     nonce = 2
 
-    tx = vrf_provider_1.relayProof(testnet_vrf_proof_1_16, nonce, {"from": accounts[2]})
-    assert tx.status == 1
-    assert vrf_provider_1.tasks(nonce) == MockTask(
+    vrf_provider_1.relayProof(testnet_vrf_proof_1_16, nonce, {"from": accounts[2]})
+
+    assert vrf_provider_1.tasks(nonce) == (
         True,
         MOCK_TIMESTAMP,
         accounts[2].address,
@@ -442,7 +423,7 @@ def test_relay_proof_1_16_success(vrf_provider_1, testnet_vrf_proof_1_16, client
         INPUT_SEED_2[0],
         EXPECTED_PROOF_2,
         EXPECTED_RESULT_2,
-    ).to_tuple()
+    )
 
     # the balance after relaying
     # the relayer must receive the fee

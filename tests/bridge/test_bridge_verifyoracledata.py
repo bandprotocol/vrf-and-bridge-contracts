@@ -115,32 +115,29 @@ def test_bridge_verifyoracledata_success(set_oracle_state):
 
 def test_bridge_verifyoracledata_unrelayed_block(set_oracle_state):
     with brownie.reverts("NO_ORACLE_ROOT_STATE_DATA"):
-        tx = set_oracle_state.verifyOracleData(
+        set_oracle_state.verifyOracleData(
             "9999",  # _blockHeight
             RESULT,  # _result
             VERSION,  # _leafVersion
             MERKLE_PATHS,
         )
-        assert tx.status == 0
 
 
 def test_bridge_verifyoracledata_invalid_data(set_oracle_state):
     with brownie.reverts("INVALID_ORACLE_DATA_PROOF"):
-        tx = set_oracle_state.verifyOracleData(
+        set_oracle_state.verifyOracleData(
             "3417",  # _blockHeight
             INVALID_RESULT,  # _result
             VERSION,  # _leafVersion
             MERKLE_PATHS,
         )
-        assert tx.status == 0
 
 
 def test_bridge_verifyoracledata_invalid_merkle_proof_paths(set_oracle_state):
     with brownie.reverts("INVALID_ORACLE_DATA_PROOF"):
-        tx = set_oracle_state.verifyOracleData(
+        set_oracle_state.verifyOracleData(
             "3417",  # _blockHeight
             RESULT,  # _result
             VERSION,  # _leafVersion
             INCOMPLETE_MERKLE_PATHS,
         )
-        assert tx.status == 0

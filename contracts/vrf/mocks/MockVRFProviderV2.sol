@@ -3,16 +3,14 @@
 pragma solidity ^0.8.14;
 
 import {IBridge} from "../../../interfaces/bridge/IBridge.sol";
-import {VRFProviderBase} from "../VRFProviderBase.sol";
+import {VRFProviderBaseV2} from "../provider_v2/VRFProviderBaseV2.sol";
 
-contract MockVRFProvider is VRFProviderBase {
+contract MockVRFProviderV2 is VRFProviderBaseV2 {
     constructor(
-        uint8 _minCount,
-        uint8 _askCount,
         uint64 _oracleScriptID,
         IBridge _bridge,
         uint256 _minimumFee
-    ) VRFProviderBase(_minCount, _askCount, _oracleScriptID, _bridge, _minimumFee) {}
+    ) VRFProviderBaseV2(_oracleScriptID, _bridge, _minimumFee) {}
 
     function getBlockTime() public view override returns (uint64) {
         // Only return a constant timestamp for the testing purpose

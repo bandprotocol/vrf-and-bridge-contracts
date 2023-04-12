@@ -16,7 +16,7 @@ VRF consists of multiple smart contracts and libraries working together. The fig
 
 - [Obi](../obi/Obi.sol) - `Obi` is the standard way to serialized and deserialize binary data in the BandChain ecosystem. [👉 See doc](https://docs.bandchain.org/technical-specifications/obi.html)
 
-- [VRFDecoder](./library/VRFDecoder.sol) - A wrapper of `Obi` in order to make it easier to use by `VRFProvider`.
+- [VRFDecoder](provider_v1/VRFDecoderV1.sol) - A wrapper of `Obi` in order to make it easier to use by `VRFProvider`.
 
 - [Ownable](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol) - A contract module which provides a basic access control mechanism, where there is an account (an owner) that can be granted exclusive access to specific functions.
 
@@ -28,7 +28,7 @@ VRF consists of multiple smart contracts and libraries working together. The fig
 
 #### Bases
 
-- [VRFProvider](./VRFProvider.sol) - An actual VRF provider contract that will be used by the actual random data consumer contract (this repo will use `MockVRFConsumer` to demonstrate contract interactions instead of the actual random data consumer contract).
+- [VRFProvider](provider_v1/VRFProviderV1.sol) - An actual VRF provider contract that will be used by the actual random data consumer contract (this repo will use `MockVRFConsumer` to demonstrate contract interactions instead of the actual random data consumer contract).
 - [VRFConsumerBaseStaticProvider](./VRFConsumerBaseStaticProvider.sol) - A basic contract for consumers who want to write extended contracts to suit their needs. `VRFConsumerBaseStaticProvider` contain a reference of `VRFProvider` contract.
 
 #### Mocks

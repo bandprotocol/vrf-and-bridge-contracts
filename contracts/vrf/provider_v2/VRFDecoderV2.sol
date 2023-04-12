@@ -6,18 +6,13 @@ import {Obi} from "../../obi/Obi.sol";
 
 /// @title ParamsDecoder library
 /// @notice Library for decoding the OBI-encoded input parameters of a VRF data request
-library VRFDecoder {
+library VRFDecoderV2 {
     using Obi for Obi.Data;
 
     struct Params {
         uint64 time;
         address taskWorker;
         bytes32 seed;
-    }
-
-    struct Result {
-        bytes result;
-        bytes proof;
     }
 
     function bytesToAddress(bytes memory addressBytes) internal pure returns(address addr) {
@@ -54,11 +49,10 @@ library VRFDecoder {
     function decodeResult(bytes memory encodedResult)
         internal
         pure
-        returns (Result memory result)
+        returns (bytes32 result)
     {
         Obi.Data memory decoder = Obi.from(encodedResult);
-        result.proof = decoder.decodeBytes();
-        result.result = decoder.decodeBytes();
+        result = bytes32(decoder.decodeBytes());
         require(decoder.finished(), "DATA_DECODE_NOT_FINISHED");
     }
 }

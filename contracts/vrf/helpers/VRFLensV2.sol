@@ -3,18 +3,16 @@
 pragma solidity ^0.8.14;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {VRFProviderBase} from "../VRFProviderBase.sol";
+import {VRFProviderBaseV2} from "../provider_v2/VRFProviderBaseV2.sol";
 
 interface IVRFProviderViewOnly {
-    function tasks(uint64 nonce) external view returns(
-        bool, uint64, address, uint256, bytes32, string memory, bytes memory, bytes memory
-    );
+    function tasks(uint64 nonce) external view returns(bool, uint64, address, uint256, bytes32, bytes32, string memory);
     function oracleScriptID() external view returns(uint64);
     function minCount() external view returns(uint8);
     function askCount() external view returns(uint8);
 }
 
-contract VRFLens is Ownable {
+contract VRFLensV2 is Ownable {
 
     IVRFProviderViewOnly public provider;
 
@@ -26,14 +24,14 @@ contract VRFLens is Ownable {
         provider = _provider;
     }
 
-    function getTasksBulk(uint64[] calldata nonces) external view returns(VRFProviderBase.Task[] memory) {
+    function getTasksBulk(uint64[] calldata nonces) external view returns(VRFProviderBaseV2.Task[] memory) {
         uint256 len = nonces.length;
-        VRFProviderBase.Task[] memory tasks = new VRFProviderBase.Task[](len);
+        VRFProviderBaseV2.Task[] memory tasks = new VRFProviderBaseV2.Task[](len);
         for (uint256 i = 0; i < len; i++) {
             (
-                bool a, uint64 b, address c, uint256 d, bytes32 e, string memory f, bytes memory g, bytes memory h
+                bool a, uint64 b, address c, uint256 d, bytes32 e, bytes32 f, string memory g
             ) = provider.tasks(nonces[i]);
-            tasks[i] = VRFProviderBase.Task(a,b,c,d,e,f,g,h);
+            tasks[i] = VRFProviderBaseV2.Task(a,b,c,d,e,f,g);
         }
         return tasks;
     }
