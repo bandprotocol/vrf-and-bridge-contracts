@@ -1,0 +1,14 @@
+[rpc_endpoints]
+cronos_testnet = "https://evm-t3.cronos.org"
+
+[etherscan]
+cronos_testnet = { key = "ZDncsUKqMy3HaOUcAsLJcY5CHTnnPjxM", url = "https://explorer-api.cronos.org/testnet/api/v1/" }
+
+[profile.default]
+chain_id = 338
+solc-version = "0.8.16"
+optimizer = true
+optimizer-runs = 200
+fs_permissions = [
+  { access = "read", path = "./script" }
+]
